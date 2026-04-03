@@ -1,0 +1,61 @@
+# Solana keypairs — never commit private keys
+*.json
+!tsconfig.json
+!package.json
+!package-lock.json
+
+# But explicitly ignore wallet keypairs
+.config/solana/
+target/deploy/*-keypair.json
+
+# Rust / Cargo
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Anchor
+.anchor/
+target/
+
+# Node
+node_modules/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+app/.next/
+app/out/
+app/build/
+app/.vercel/
+app/node_modules/
+
+# Environment files — never commit secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# IDL and types (generated, not source)
+target/idl/
+target/types/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Test artifacts
+test-ledger/
