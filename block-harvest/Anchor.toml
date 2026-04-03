@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-block_harvest = "C54J4haBjNNGYfV8ZENqvDRzvhX5ReeJPjyCVnySbdXj"
+block_harvest = "AX4M7VumN7bvfWz3RTAux8KBheq9GKrTbxnSGo91gVXd"
 
 [registry]
 url = "https://api.apr.dev"

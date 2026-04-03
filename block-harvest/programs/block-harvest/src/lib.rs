@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("C54J4haBjNNGYfV8ZENqvDRzvhX5ReeJPjyCVnySbdXj");
+declare_id!("AX4M7VumN7bvfWz3RTAux8KBheq9GKrTbxnSGo91gVXd");
 
 // Paste your `solana address` output here between the quotes
 const ADMIN: &str = "b2ZT8E77rduCDYuM9M1gXPY7MMPpHvvEEhh6WV2me4E";
