@@ -1,13 +1,11 @@
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
 import { Program, AnchorProvider, Idl }         from '@coral-xyz/anchor'
 
-export const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID!
-)
+export const PROGRAM_ID = new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID!)
 
 export const connection = new Connection(
-  process.env.NEXT_PUBLIC_RPC_URL ?? clusterApiUrl('devnet'),
-  'confirmed'
+    process.env.NEXT_PUBLIC_RPC_URL ?? clusterApiUrl('devnet'),
+    'confirmed'
 )
 
 export const IDL = {
@@ -75,24 +73,33 @@ export const IDL = {
   errors: [],
 } as Idl
 
+// ── The single source of truth for creating a provider ───────────────
+export function getProvider(wallet: any) {
+  const adapter = wallet?.adapter ?? wallet
+
+  const signerWallet = {
+    publicKey:           adapter.publicKey,
+    signTransaction:     adapter.signTransaction.bind(adapter),
+    signAllTransactions: adapter.signAllTransactions.bind(adapter),
+  }
+
+  return new AnchorProvider(connection, signerWallet, { commitment: 'confirmed' })
+}
+
 export function getProgram(wallet: any) {
-  const provider = new AnchorProvider(connection, wallet, {
-    commitment: 'confirmed',
-  })
-  // Pass PROGRAM_ID.toString() not the PublicKey object
-  return new Program(IDL, PROGRAM_ID.toString(), provider)
+  return new Program(IDL, PROGRAM_ID.toString(), getProvider(wallet))
 }
 
 export function getFarmerPDA(walletPubkey: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('farmer'), walletPubkey.toBuffer()],
-    PROGRAM_ID
+      [Buffer.from('farmer'), walletPubkey.toBuffer()],
+      PROGRAM_ID
   )
 }
 
 export function getVaultPDA() {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault')],
-    PROGRAM_ID
+      [Buffer.from('vault')],
+      PROGRAM_ID
   )
 }
