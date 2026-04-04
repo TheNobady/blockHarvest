@@ -7,6 +7,9 @@ import { getProgram, getFarmerPDA } from '../../lib/anchor'
 import { supabase }    from '../../lib/supabase'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
+const inputClass =
+  'w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-4 py-3 text-zinc-100 placeholder-zinc-600 outline-none transition focus:border-zinc-600 focus:ring-2 focus:ring-zinc-700/50'
+
 export default function Register() {
   const { publicKey, wallet } = useWallet()
   const router                = useRouter()
@@ -43,57 +46,72 @@ export default function Register() {
 
       if (dbError) throw new Error(dbError.message)
       router.push('/dashboard')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setError(err.message ?? JSON.stringify(err))
+      setError(err instanceof Error ? err.message : JSON.stringify(err))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-      <main className="min-h-screen flex items-center justify-center bg-green-50">
-        <div className="bg-white rounded-2xl shadow p-8 w-full max-w-md space-y-6">
-          <h2 className="text-2xl font-bold text-green-800">Register as farmer</h2>
-          <div className="space-y-4">
+      <main className="relative min-h-screen">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(52,211,153,0.09),transparent)]"
+          aria-hidden
+        />
+        <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
+          <div className="w-full max-w-md space-y-8 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-8 shadow-2xl shadow-black/40 backdrop-blur-md sm:p-10">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Full name</label>
-              <input
-                  className="w-full border rounded-lg px-4 py-2"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-              />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Onboarding</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Register as farmer</h2>
+              <p className="mt-2 text-sm text-zinc-500">Create your on-chain account and save your profile.</p>
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Crop type</label>
-              <input
-                  className="w-full border rounded-lg px-4 py-2"
-                  value={form.crop_type}
-                  onChange={e => setForm({ ...form, crop_type: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Land size (acres)</label>
-              <input
-                  type="number"
-                  step="0.01"
-                  className="w-full border rounded-lg px-4 py-2"
-                  value={form.land_size}
-                  onChange={e => setForm({ ...form, land_size: e.target.value })}
-              />
-            </div>
-            {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-            )}
-            <button
-                onClick={handleSubmit}
-                disabled={loading || !publicKey}
-                className="w-full bg-green-700 text-white rounded-lg py-2 font-semibold hover:bg-green-800 disabled:opacity-50"
-            >
-              {loading ? 'Registering...' : 'Register'}
-            </button>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="name" className="mb-1.5 block text-sm text-zinc-400">Full name</label>
+                <input
+                    id="name"
+                    className={inputClass}
+                    value={form.name}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    autoComplete="name"
+                />
+              </div>
+              <div>
+                <label htmlFor="crop" className="mb-1.5 block text-sm text-zinc-400">Crop type</label>
+                <input
+                    id="crop"
+                    className={inputClass}
+                    value={form.crop_type}
+                    onChange={e => setForm({ ...form, crop_type: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="land" className="mb-1.5 block text-sm text-zinc-400">Land size (acres)</label>
+                <input
+                    id="land"
+                    type="number"
+                    step="0.01"
+                    className={inputClass}
+                    value={form.land_size}
+                    onChange={e => setForm({ ...form, land_size: e.target.value })}
+                />
+              </div>
+              {error && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+                    <p className="text-sm text-red-400">{error}</p>
+                  </div>
+              )}
+              <button
+                  type="submit"
+                  disabled={loading || !publicKey}
+                  className="w-full rounded-xl bg-white py-3.5 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? 'Registering…' : 'Register'}
+              </button>
+            </form>
           </div>
         </div>
       </main>

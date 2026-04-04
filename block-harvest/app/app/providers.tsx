@@ -19,7 +19,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         new PhantomWalletAdapter(),
         new SolflareWalletAdapter(),
         new TorusWalletAdapter(),   // works in browser, no extension needed
-    ], [network])
+    ], [])
 
     return (
         <ConnectionProvider endpoint={endpoint}>

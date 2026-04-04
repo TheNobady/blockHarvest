@@ -1,5 +1,6 @@
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
-import { Program, AnchorProvider, Idl }         from '@coral-xyz/anchor'
+import { Program, AnchorProvider, Idl } from '@coral-xyz/anchor'
+import type { Wallet as ProviderWallet } from '@coral-xyz/anchor/dist/cjs/provider.js'
 
 export const PROGRAM_ID = new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID!)
 
@@ -73,20 +74,40 @@ export const IDL = {
   errors: [],
 } as Idl
 
-// ── The single source of truth for creating a provider ───────────────
-export function getProvider(wallet: any) {
-  const adapter = wallet?.adapter ?? wallet
+type AdapterLike = {
+  publicKey: PublicKey | null
+  signTransaction: ProviderWallet['signTransaction']
+  signAllTransactions: ProviderWallet['signAllTransactions']
+}
 
-  const signerWallet = {
-    publicKey:           adapter.publicKey,
-    signTransaction:     adapter.signTransaction.bind(adapter),
+function toAdapter(wallet: unknown): AdapterLike {
+  if (wallet == null) throw new Error('Wallet required')
+  const raw =
+    typeof wallet === 'object' &&
+    wallet !== null &&
+    'adapter' in wallet &&
+    (wallet as { adapter: unknown }).adapter != null
+      ? (wallet as { adapter: AdapterLike }).adapter
+      : (wallet as AdapterLike)
+  if (raw?.publicKey == null) throw new Error('Wallet not connected')
+  return raw
+}
+
+// ── The single source of truth for creating a provider ───────────────
+export function getProvider(wallet: unknown) {
+  const adapter = toAdapter(wallet)
+  const publicKey = adapter.publicKey
+  if (!publicKey) throw new Error('Wallet not connected')
+  const signerWallet: ProviderWallet = {
+    publicKey,
+    signTransaction: adapter.signTransaction.bind(adapter),
     signAllTransactions: adapter.signAllTransactions.bind(adapter),
   }
 
   return new AnchorProvider(connection, signerWallet, { commitment: 'confirmed' })
 }
 
-export function getProgram(wallet: any) {
+export function getProgram(wallet: unknown) {
   return new Program(IDL, PROGRAM_ID.toString(), getProvider(wallet))
 }
 
