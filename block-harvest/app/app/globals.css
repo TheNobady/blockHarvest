@@ -1,60 +1,233 @@
 @import "tailwindcss";
 
+/* Material Symbols: load via <link> in app/layout.tsx — @import here breaks after Tailwind expands */
+
+/* ── Precision Ecosystem tokens ───────────────────────────────────── */
 :root {
-  --background: #030303;
-  --foreground: #fafafa;
-  --muted: #a1a1aa;
-  --border: #27272a;
-  --card: #0a0a0a;
-  --accent: #34d399;
+  --surface: #131313;
+  --surface-dim: #0f0f0f;
+  --surface-container-lowest: #141414;
+  --surface-container-low: #1c1b1b;
+  --surface-container-high: #2a2a2a;
+  --surface-container-highest: #353534;
+  --on-surface: #e5e2e1;
+  --on-surface-variant: #9a9694;
+  --primary: #4be277;
+  --primary-container: #22c55e;
+  --primary-fixed: #6bff8f;
+  --secondary: #62df7d;
+  --on-primary-container: #004b1e;
+  --tertiary: #deb8ff;
+  --outline-variant: #3d4a3d;
+  --ambient-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  --ghost-outline: 0 0 0 1px color-mix(in srgb, var(--outline-variant) 15%, transparent);
+  --ghost-outline-focus: 0 0 0 2px var(--primary-container);
+  --transition-ui: 300ms ease;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-secondary: var(--secondary);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-tertiary: var(--tertiary);
+  --color-outline-variant: var(--outline-variant);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Solana wallet adapter — match dark UI */
+/* Material Symbols — matches Stitch / Google Fonts setup */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* ── Primitives ───────────────────────────────────────────────────── */
+@utility bh-ambient {
+  box-shadow: var(--ambient-shadow);
+}
+
+@utility bh-glass {
+  background: color-mix(in srgb, var(--surface-container-low) 60%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+@utility bh-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+/* Primary CTA — gradient 135°, no flat fill */
+.bh-btn-primary {
+  border-radius: 0.75rem;
+  border: none;
+  background: linear-gradient(135deg, var(--primary-container) 0%, var(--primary) 100%);
+  color: var(--on-primary-container);
+  font-weight: 700;
+  box-shadow: var(--ambient-shadow), 0 0 24px color-mix(in srgb, var(--primary-container) 22%, transparent);
+  transition:
+    opacity var(--transition-ui),
+    transform var(--transition-ui),
+    box-shadow var(--transition-ui),
+    filter var(--transition-ui);
+}
+
+.bh-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.bh-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bh-btn-secondary {
+  border-radius: 0.75rem;
+  border: none;
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  font-weight: 600;
+  box-shadow: var(--ghost-outline);
+  transition:
+    background-color var(--transition-ui),
+    transform var(--transition-ui),
+    box-shadow var(--transition-ui);
+}
+
+.bh-btn-secondary:hover:not(:disabled) {
+  background: var(--surface-container-highest);
+  transform: translateY(-1px);
+}
+
+.bh-input {
+  border-radius: 0.75rem;
+  border: none;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  box-shadow: var(--ghost-outline);
+  transition: box-shadow var(--transition-ui), background-color var(--transition-ui);
+}
+
+.bh-input::placeholder {
+  color: color-mix(in srgb, var(--on-surface-variant) 70%, transparent);
+}
+
+.bh-input:focus {
+  outline: none;
+  box-shadow: var(--ghost-outline-focus);
+}
+
+.bh-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  background: color-mix(in srgb, var(--primary-container) 18%, transparent);
+  color: var(--primary);
+}
+
+.bh-chip-muted {
+  background: color-mix(in srgb, var(--on-surface) 8%, transparent);
+  color: var(--on-surface-variant);
+}
+
+.bh-chip-tertiary {
+  background: color-mix(in srgb, var(--tertiary) 14%, transparent);
+  color: var(--tertiary);
+}
+
+/* ── Solana wallet adapter ─────────────────────────────────────────── */
 .wallet-adapter-button {
-  background: #fafafa !important;
-  color: #09090b !important;
   border-radius: 0.75rem !important;
-  font-weight: 600 !important;
+  border: none !important;
+  font-weight: 700 !important;
   font-size: 0.875rem !important;
   line-height: 1.25rem !important;
   padding: 0.625rem 1rem !important;
-  border: none !important;
-  transition: background-color 0.15s ease !important;
+  background: linear-gradient(135deg, var(--primary-container) 0%, var(--primary) 100%) !important;
+  color: #0a0a0a !important;
+  box-shadow: var(--ambient-shadow), 0 0 20px color-mix(in srgb, var(--primary-container) 20%, transparent) !important;
+  transition:
+    filter var(--transition-ui),
+    transform var(--transition-ui) !important;
 }
 
 .wallet-adapter-button:hover {
-  background: #e4e4e7 !important;
+  filter: brightness(1.06) !important;
+  transform: translateY(-1px) !important;
+}
+
+/*
+ * Lift the whole dialog above the app header (z-50). Do NOT give the overlay the same z-index as the
+ * panel — the overlay is a DOM sibling after .wallet-adapter-modal-container; equal z-index lets the
+ * overlay paint on top and steal every click, so choosing Phantom only fires handleClose on the overlay.
+ */
+.wallet-adapter-modal {
+  z-index: 200000 !important;
+}
+
+.wallet-adapter-dropdown-list {
+  z-index: 200 !important;
 }
 
 .wallet-adapter-modal-wrapper .wallet-adapter-modal {
-  background: #0a0a0a !important;
-  border: 1px solid #27272a !important;
+  background: color-mix(in srgb, var(--surface-container-low) 72%, transparent) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
   border-radius: 1rem !important;
+  box-shadow: var(--ambient-shadow), var(--ghost-outline) !important;
+  border: none !important;
 }
 
 .wallet-adapter-modal-title {
-  color: #fafafa !important;
+  color: var(--on-surface) !important;
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button {
-  background: #18181b !important;
-  color: #fafafa !important;
-  border: 1px solid #27272a !important;
+  background: var(--surface-container-high) !important;
+  color: var(--on-surface) !important;
+  box-shadow: var(--ghost-outline) !important;
+  transform: none !important;
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button:hover {
-  background: #27272a !important;
+  background: var(--surface-container-highest) !important;
+  filter: none !important;
 }
