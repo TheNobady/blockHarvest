@@ -1,7 +1,28 @@
+# Patterns here apply under block-harvest/ (see repo-root .gitignore too)
+
 .anchor
+.anchor/
 .DS_Store
-target
+target/
 **/*.rs.bk
-node_modules
-test-ledger
-.yarn
+node_modules/
+**/node_modules/
+test-ledger/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js sub-app
+app/.next/
+app/out/
+app/build/
+app/.vercel/
+
+# Env
+.env
+.env.*
+!.env.example
+app/.env
+app/.env.*

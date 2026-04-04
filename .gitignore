@@ -1,61 +1,58 @@
-# Solana keypairs — never commit private keys
-*.json
-!tsconfig.json
-!package.json
-!package-lock.json
-
-# But explicitly ignore wallet keypairs
+# ── Secrets & Solana keypairs (never commit) ─────────────────────────
+*-keypair.json
+**/*-keypair.json
 .config/solana/
-target/deploy/*-keypair.json
 
-# Rust / Cargo
-target/
+# ── Rust / Anchor ───────────────────────────────────────────────────
+**/target/
 **/*.rs.bk
-Cargo.lock
-
-# Anchor
 .anchor/
-target/
+**/.anchor/
 
-# Node
+# Reproducible builds: commit workspace Cargo.lock (do not ignore)
+
+# ── Node ───────────────────────────────────────────────────────────
 node_modules/
+**/node_modules/
 .npm/
+.pnpm-store/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# Next.js
-app/.next/
-app/out/
-app/build/
-app/.vercel/
-app/node_modules/
+# ── Next.js (app: block-harvest/app) ───────────────────────────────
+block-harvest/app/.next/
+block-harvest/app/out/
+block-harvest/app/build/
+block-harvest/app/.vercel/
+**/.turbo/
 
-# Environment files — never commit secrets
+# ── Environment (secrets) ───────────────────────────────────────────
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 .env*.local
+**/.env
+**/.env.local
+!**/.env.example
+!.env.example
 
-# IDL and types (generated, not source)
+# Generated IDL/types under target (if emitted here)
 target/idl/
 target/types/
 
-# OS files
+# ── OS & editor ─────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# Editor
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Logs
+# ── Logs & local ledgers ──────────────────────────────────────────
 logs/
 *.log
-
-# Test artifacts
 test-ledger/
