@@ -13,7 +13,7 @@ create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   signature text not null unique,
   wallet_address text not null,
-  tx_type text not null check (tx_type in ('premium', 'payout')),
+  tx_type text not null check (tx_type in ('premium', 'payout', 'register')),
   amount_sol numeric not null,
   status text not null default 'success' check (status in ('success', 'pending')),
   created_at timestamptz not null default now()

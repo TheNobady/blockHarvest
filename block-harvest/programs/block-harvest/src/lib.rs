@@ -10,6 +10,13 @@ const ADMIN: &str = "b2ZT8E77rduCDYuM9M1gXPY7MMPpHvvEEhh6WV2me4E";
 pub mod block_harvest {
     use super::*;
 
+    /// One-time: creates the [vault] PDA so premiums can be transferred into it. Anyone may pay rent.
+    pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
+        ctx.accounts.vault.bump = ctx.bumps.vault;
+        msg!("Vault PDA initialized");
+        Ok(())
+    }
+
     pub fn register_farmer(ctx: Context<RegisterFarmer>) -> Result<()> {
         let account = &mut ctx.accounts.farmer_account;
         account.farmer            = ctx.accounts.farmer.key();
@@ -54,7 +61,7 @@ pub mod block_harvest {
 
     pub fn approve_claim(ctx: Context<ApproveClaim>) -> Result<()> {
         let payout     = ctx.accounts.farmer_account.premium_amount;
-        let vault_bump = ctx.bumps.vault;
+        let vault_bump = ctx.accounts.vault.bump;
 
         let vault_seeds: &[&[&[u8]]] = &[&[b"vault", &[vault_bump]]];
 
@@ -74,6 +81,12 @@ pub mod block_harvest {
     }
 }
 
+// ── Vault PDA (holds premium SOL; program-owned) ─────────────────────
+#[account]
+pub struct ProgramVault {
+    pub bump: u8,
+}
+
 // ── Data stored on-chain per farmer ──────────────────────────────────
 #[account]
 pub struct FarmerAccount {
@@ -85,6 +98,24 @@ pub struct FarmerAccount {
     pub claim_approved:    bool,   //  1
     pub bump:              u8,     //  1
 }                                  // = 52 bytes total
+
+// ── initialize_vault ─────────────────────────────────────────────────
+#[derive(Accounts)]
+pub struct InitializeVault<'info> {
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + 1,
+        seeds = [b"vault"],
+        bump
+    )]
+    pub vault: Account<'info, ProgramVault>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
 
 // ── register_farmer ───────────────────────────────────────────────────
 #[derive(Accounts)]
@@ -118,13 +149,12 @@ pub struct PayPremium<'info> {
     #[account(mut)]
     pub farmer: Signer<'info>,
 
-    /// CHECK: program vault PDA
     #[account(
         mut,
         seeds = [b"vault"],
-        bump,
+        bump = vault.bump,
     )]
-    pub vault: SystemAccount<'info>,
+    pub vault: Account<'info, ProgramVault>,
 
     pub system_program: Program<'info, System>,
 }
@@ -175,9 +205,9 @@ pub struct ApproveClaim<'info> {
     #[account(
         mut,
         seeds = [b"vault"],
-        bump,
+        bump = vault.bump,
     )]
-    pub vault: SystemAccount<'info>,
+    pub vault: Account<'info, ProgramVault>,
 
     #[account(
         mut,

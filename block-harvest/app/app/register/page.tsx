@@ -1,15 +1,21 @@
 'use client'
 
-import { useWallet } from '@solana/wallet-adapter-react'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { SystemProgram } from '@solana/web3.js'
 import { getProgram, getFarmerPDA } from '../../lib/anchor'
-import { isSupabaseConfigured, upsertFarmerProfile } from '../../lib/supabase'
+import {
+  isDuplicateTxSignature,
+  isSupabaseConfigured,
+  recordRegisterTransaction,
+  upsertFarmerProfile,
+} from '../../lib/supabase'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
 export default function Register() {
+  const { connection } = useConnection()
   const { publicKey, wallet } = useWallet()
   const router = useRouter()
   const [form, setForm] = useState({ name: '', crop_type: '', land_size: '' })
@@ -32,7 +38,7 @@ export default function Register() {
     setLoading(true)
     setError('')
     try {
-      const program = getProgram(wallet)
+      const program = getProgram(wallet, connection)
       const [farmerPDA] = getFarmerPDA(publicKey)
 
       let alreadyOnChain = false
@@ -43,8 +49,9 @@ export default function Register() {
         // PDA not created yet — will register below
       }
 
+      let registerSignature: string | null = null
       if (!alreadyOnChain) {
-        await program.methods
+        registerSignature = await program.methods
           .registerFarmer()
           .accounts({
             farmerAccount: farmerPDA,
@@ -66,6 +73,13 @@ export default function Register() {
         throw new Error(
           `On-chain step ${alreadyOnChain ? 'skipped (already registered)' : 'succeeded'}, but Supabase failed: ${dbErr.message}. Check RLS policies and that tables exist (see app/supabase/schema.sql).`
         )
+      }
+
+      if (registerSignature) {
+        const ledgerErr = await recordRegisterTransaction(publicKey.toString(), registerSignature, 0)
+        if (ledgerErr && !isDuplicateTxSignature(ledgerErr)) {
+          console.warn('[BlockHarvest] register ledger row:', ledgerErr.message)
+        }
       }
 
       router.push('/dashboard')

@@ -35,7 +35,7 @@ export type LedgerTransaction = {
   id: string
   signature: string
   wallet_address: string
-  tx_type: 'premium' | 'payout'
+  tx_type: 'premium' | 'payout' | 'register'
   amount_sol: number
   status: 'success' | 'pending'
   created_at: string
@@ -73,6 +73,22 @@ export async function recordPremiumTransaction(
     signature,
     wallet_address: walletAddress,
     tx_type: 'premium',
+    amount_sol: amountSol,
+    status: 'success',
+  })
+  return error ? { message: error.message, code: error.code } : null
+}
+
+/** On-chain farmer registration (or vault init) — amount is SOL spent on fees (0 if unknown). */
+export async function recordRegisterTransaction(
+  walletAddress: string,
+  signature: string,
+  amountSol: number = 0
+): Promise<{ message: string; code?: string } | null> {
+  const { error } = await supabase.from('transactions').insert({
+    signature,
+    wallet_address: walletAddress,
+    tx_type: 'register',
     amount_sol: amountSol,
     status: 'success',
   })
@@ -171,7 +187,7 @@ export async function fetchLedgerTransactions(limit = 200): Promise<LedgerTransa
     id: String(r.id),
     signature: String(r.signature),
     wallet_address: String(r.wallet_address),
-    tx_type: r.tx_type as 'premium' | 'payout',
+    tx_type: r.tx_type as 'premium' | 'payout' | 'register',
     amount_sol: Number(r.amount_sol),
     status: r.status as 'success' | 'pending',
     created_at: String(r.created_at),

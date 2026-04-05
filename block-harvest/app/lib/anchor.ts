@@ -1,4 +1,4 @@
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
+import { Connection, PublicKey, SystemProgram, clusterApiUrl } from '@solana/web3.js'
 import { Program, AnchorProvider, Idl } from '@coral-xyz/anchor'
 import type { Wallet as ProviderWallet } from '@coral-xyz/anchor/dist/cjs/provider.js'
 
@@ -13,6 +13,15 @@ export const IDL = {
   version: '0.1.0',
   name:    'block_harvest',
   instructions: [
+    {
+      name: 'initializeVault',
+      accounts: [
+        { name: 'vault',         isMut: true,  isSigner: false },
+        { name: 'payer',         isMut: true,  isSigner: true  },
+        { name: 'systemProgram', isMut: false, isSigner: false },
+      ],
+      args: [],
+    },
     {
       name: 'registerFarmer',
       accounts: [
@@ -56,6 +65,13 @@ export const IDL = {
   ],
   accounts: [
     {
+      name: 'ProgramVault',
+      type: {
+        kind:   'struct',
+        fields: [{ name: 'bump', type: 'u8' }],
+      },
+    },
+    {
       name: 'FarmerAccount',
       type: {
         kind:   'struct',
@@ -94,7 +110,7 @@ function toAdapter(wallet: unknown): AdapterLike {
 }
 
 // ── The single source of truth for creating a provider ───────────────
-export function getProvider(wallet: unknown) {
+export function getProvider(wallet: unknown, connectionOverride?: Connection) {
   const adapter = toAdapter(wallet)
   const publicKey = adapter.publicKey
   if (!publicKey) throw new Error('Wallet not connected')
@@ -104,11 +120,32 @@ export function getProvider(wallet: unknown) {
     signAllTransactions: adapter.signAllTransactions.bind(adapter),
   }
 
-  return new AnchorProvider(connection, signerWallet, { commitment: 'confirmed' })
+  const conn = connectionOverride ?? connection
+  return new AnchorProvider(conn, signerWallet, { commitment: 'confirmed' })
 }
 
-export function getProgram(wallet: unknown) {
-  return new Program(IDL, PROGRAM_ID.toString(), getProvider(wallet))
+export function getProgram(wallet: unknown, connectionOverride?: Connection) {
+  return new Program(IDL, PROGRAM_ID.toString(), getProvider(wallet, connectionOverride))
+}
+
+/** Creates the vault PDA on first use (one-time per deployment). Requires upgraded program + redeploy. */
+export async function ensureProgramVaultInitialized(
+  program: Program<typeof IDL>,
+  payerPubkey: PublicKey
+): Promise<void> {
+  const [vaultPDA] = getVaultPDA()
+  try {
+    await program.account.programVault.fetch(vaultPDA)
+  } catch {
+    await program.methods
+      .initializeVault()
+      .accounts({
+        vault: vaultPDA,
+        payer: payerPubkey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc()
+  }
 }
 
 export function getFarmerPDA(walletPubkey: PublicKey) {

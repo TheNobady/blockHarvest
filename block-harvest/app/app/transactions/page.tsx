@@ -35,11 +35,17 @@ function formatRelativeTime(iso: string): string {
 type UiRow = {
   id: string
   wallet: string
-  type: 'Premium' | 'Payout'
+  type: 'Premium' | 'Payout' | 'Register'
   amount: string
   status: 'Success' | 'Pending'
   time: string
   raw: LedgerTransaction
+}
+
+function mapLedgerType(t: LedgerTransaction['tx_type']): UiRow['type'] {
+  if (t === 'premium') return 'Premium'
+  if (t === 'payout') return 'Payout'
+  return 'Register'
 }
 
 export default function TransactionsPage() {
@@ -47,7 +53,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [totalVol, setTotalVol] = useState(0)
   const [q, setQ] = useState('')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'Premium' | 'Payout'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'Premium' | 'Payout' | 'Register'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'Success' | 'Pending'>('all')
 
   const load = useCallback(async () => {
@@ -75,7 +81,7 @@ export default function TransactionsPage() {
     return rows.map((r) => ({
       id: shortSig(r.signature),
       wallet: shortPk(r.wallet_address),
-      type: r.tx_type === 'premium' ? 'Premium' : 'Payout',
+      type: mapLedgerType(r.tx_type),
       amount: `${Number(r.amount_sol).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} SOL`,
       status: r.status === 'success' ? 'Success' : 'Pending',
       time: formatRelativeTime(r.created_at),
@@ -118,8 +124,7 @@ export default function TransactionsPage() {
             </span>
           </h1>
           <p className="mt-6 text-base leading-relaxed text-on-surface-variant">
-            Every premium payment from the app is stored here after a successful on-chain transaction. Payout rows can be
-            added when you wire claim settlement to the same table.
+            Premiums, farmer registrations, and (when wired) payouts are stored here after successful Solana transactions.
           </p>
         </div>
         <div className="flex flex-wrap gap-4 lg:justify-end">
@@ -156,6 +161,7 @@ export default function TransactionsPage() {
             <option value="all">All Types</option>
             <option value="Premium">Premium</option>
             <option value="Payout">Payout</option>
+            <option value="Register">Register</option>
           </select>
           <select
             value={statusFilter}
@@ -197,7 +203,17 @@ export default function TransactionsPage() {
                 <p className="font-mono text-sm text-on-surface-variant">{r.wallet}</p>
               </div>
               <div>
-                <span className={r.type === 'Premium' ? 'bh-chip' : 'bh-chip-tertiary'}>{r.type}</span>
+                <span
+                  className={
+                    r.type === 'Premium'
+                      ? 'bh-chip'
+                      : r.type === 'Payout'
+                        ? 'bh-chip-tertiary'
+                        : 'bh-chip-muted'
+                  }
+                >
+                  {r.type}
+                </span>
               </div>
               <div>
                 <p className="bh-label sm:hidden">Amount</p>

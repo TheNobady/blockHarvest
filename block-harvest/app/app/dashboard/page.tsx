@@ -1,12 +1,17 @@
 'use client'
 
-import { useWallet } from '@solana/wallet-adapter-react'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import ClientWalletButton from '@/components/ClientWalletButton'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { SystemProgram } from '@solana/web3.js'
 import SecureHarvestModal from '@/components/SecureHarvestModal'
-import { getProgram, getFarmerPDA, getVaultPDA } from '../../lib/anchor'
+import {
+  ensureProgramVaultInitialized,
+  getFarmerPDA,
+  getProgram,
+  getVaultPDA,
+} from '../../lib/anchor'
 import {
   type DashboardStats,
   type Farmer,
@@ -45,6 +50,7 @@ function formatSol(n: number) {
 }
 
 export default function Dashboard() {
+  const { connection } = useConnection()
   const { publicKey, wallet } = useWallet()
   const [farmer, setFarmer] = useState<Farmer | null>(null)
   const [chain, setChain] = useState<ChainData | null>(null)
@@ -62,7 +68,7 @@ export default function Dashboard() {
     if (!publicKey || !wallet) return
     setFetching(true)
     try {
-      const program = getProgram(wallet)
+      const program = getProgram(wallet, connection)
       const [pda] = getFarmerPDA(publicKey)
       const account = (await program.account.farmerAccount.fetch(pda)) as FarmerAccountFetched
 
@@ -111,7 +117,7 @@ export default function Dashboard() {
     } finally {
       setFetching(false)
     }
-  }, [publicKey, wallet])
+  }, [publicKey, wallet, connection])
 
   useEffect(() => {
     if (publicKey && wallet) void fetchAll()
@@ -125,9 +131,11 @@ export default function Dashboard() {
     }
     setLoading(true)
     try {
-      const program = getProgram(wallet)
+      const program = getProgram(wallet, connection)
       const [farmerPDA] = getFarmerPDA(publicKey)
       const [vaultPDA] = getVaultPDA()
+
+      await ensureProgramVaultInitialized(program, publicKey)
 
       const tx = await program.methods
         .payPremium()
@@ -231,8 +239,19 @@ export default function Dashboard() {
         <div className="flex shrink-0 flex-col items-stretch gap-4 sm:flex-row lg:flex-col lg:items-end">
           <button
             type="button"
-            onClick={() => (hasOnChainAccount && hasDb ? setModalOpen(true) : undefined)}
-            disabled={!hasOnChainAccount || !hasDb}
+            onClick={() => {
+              if (!hasDb) {
+                alert(
+                  'Configure Supabase (NEXT_PUBLIC_SUPABASE_URL + ANON_KEY) and run app/supabase/schema.sql so premiums can be recorded.'
+                )
+                return
+              }
+              if (!hasOnChainAccount) {
+                alert('Register your farmer account on-chain first (Register page), then return here to buy insurance.')
+                return
+              }
+              setModalOpen(true)
+            }}
             className="bh-btn-primary inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm"
           >
             <span aria-hidden>🛒</span> Buy insurance
