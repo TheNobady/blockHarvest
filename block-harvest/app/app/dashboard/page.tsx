@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import ClientWalletButton from '@/components/ClientWalletButton'
@@ -342,11 +342,10 @@ export default function Dashboard() {
       {chain && (
         <section className="mt-8 grid gap-6 sm:grid-cols-2">
           <div
-            className={`rounded-3xl p-8 bh-ambient transition-all duration-300 ${
-              chain.premiumPaid
+            className={`rounded-3xl p-8 bh-ambient transition-all duration-300 ${chain.premiumPaid
                 ? 'bg-surface-container-high shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary-container)_18%,transparent)]'
                 : 'bg-surface-container-low'
-            }`}
+              }`}
           >
             <p className="bh-label">On-chain premium</p>
             {chain.premiumPaid ? (
