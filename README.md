@@ -4,6 +4,13 @@ A decentralised crop insurance platform built on the Solana blockchain. Farmers 
 
 ---
 
+**Live Deployment:** [https://block-harvest-qk3j.vercel.app/](https://block-harvest-qk3j.vercel.app/)
+
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+
+
+
 ## What it does
 
 - Farmers connect their Phantom wallet and register with their name, crop type, and land size
