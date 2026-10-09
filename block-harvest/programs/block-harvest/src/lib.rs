@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("4jFADmVSfN7nJwmfWunqvnH4Ey6Stsmruup35Pjx6DvN");
+declare_id!("C54J4haBjNNGYfV8ZENqvDRzvhX5ReeJPjyCVnySbdXj");
 
 // Paste your `solana address` output here between the quotes
 const ADMIN: &str = "b2ZT8E77rduCDYuM9M1gXPY7MMPpHvvEEhh6WV2me4E";
@@ -60,20 +60,18 @@ pub mod block_harvest {
     }
 
     pub fn approve_claim(ctx: Context<ApproveClaim>) -> Result<()> {
-        let payout     = ctx.accounts.farmer_account.premium_amount;
-        let vault_bump = ctx.accounts.vault.bump;
+        let payout = ctx.accounts.farmer_account.premium_amount;
 
-        let vault_seeds: &[&[&[u8]]] = &[&[b"vault", &[vault_bump]]];
-
-        let cpi_context = CpiContext::new_with_signer(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.vault.to_account_info(),
-                to:   ctx.accounts.farmer_wallet.to_account_info(),
-            },
-            vault_seeds,
+        // The vault is program-owned and carries data, so the System Program can't
+        // debit it — move lamports directly instead.
+        let vault_info = ctx.accounts.vault.to_account_info();
+        let rent_floor = Rent::get()?.minimum_balance(vault_info.data_len());
+        require!(
+            vault_info.lamports().saturating_sub(rent_floor) >= payout,
+            ErrorCode::InsufficientVaultFunds
         );
-        system_program::transfer(cpi_context, payout)?;
+        **vault_info.try_borrow_mut_lamports()? -= payout;
+        **ctx.accounts.farmer_wallet.to_account_info().try_borrow_mut_lamports()? += payout;
 
         ctx.accounts.farmer_account.claim_approved = true;
         msg!("Claim approved. {} lamports released", payout);
@@ -235,4 +233,6 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Wrong farmer wallet")]
     WrongFarmer,
+    #[msg("Vault has insufficient funds for payout")]
+    InsufficientVaultFunds,
 }
