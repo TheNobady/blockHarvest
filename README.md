@@ -1,237 +1,170 @@
-# BlockHarvest
+<p align="center">
+  <img src="block-harvest/app/public/BlockHarvest.png" alt="BlockHarvest" width="120" />
+</p>
 
-A decentralised crop insurance platform built on the Solana blockchain. Farmers can register, pay premiums, and file claims — with all payments recorded immutably on-chain and farmer profiles stored in Supabase.
+<h1 align="center">BlockHarvest</h1>
+
+<p align="center">
+  <strong>Crop insurance on Solana — premiums and payouts settled on-chain, verifiable by anyone.</strong>
+</p>
+
+<p align="center">
+  <a href="https://block-harvest-qk3j.vercel.app/"><strong>Live demo →</strong></a>
+  &nbsp;·&nbsp; Solana Devnet &nbsp;·&nbsp; Phantom / Solflare wallet required
+</p>
+
+<p align="center">
+  <img alt="Solana" src="https://img.shields.io/badge/Solana-Devnet-9945FF?logo=solana&logoColor=white" />
+  <img alt="Anchor" src="https://img.shields.io/badge/Anchor-0.29-blue" />
+  <img alt="Rust" src="https://img.shields.io/badge/Rust-1.89-orange?logo=rust" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" />
+  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" />
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres-3ECF8E?logo=supabase&logoColor=white" />
+</p>
 
 ---
 
-**Live Deployment:** [https://block-harvest-qk3j.vercel.app/](https://block-harvest-qk3j.vercel.app/)
+## The problem
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Smallholder farmers wait weeks or months for crop-insurance payouts, and have no way to check where their premium went or why a claim stalled. The insurer's ledger is a black box.
 
+## The idea
 
+Put the money and the policy state on a public blockchain. A farmer's premium goes into a vault owned by a smart contract — not a company bank account — and every payment and payout is a transaction anyone can audit on Solana Explorer. The database is only used for things that don't need to be trustless (names, crop types, dashboard stats).
 
+## Features
 
-## What it does
+- **Wallet sign-in** — connect Phantom or Solflare; your wallet address *is* your identity.
+- **On-chain policy account** — registering creates a per-farmer account (PDA) owned by the program.
+- **Premium payments** — pay 0.1 SOL into a program-controlled vault; the policy flips to *active* on-chain.
+- **Admin-governed claims** — a designated admin wallet files and approves claims; approval releases SOL from the vault to the farmer.
+- **Public ledger** — every transaction links to Solana Explorer.
+- **Live dashboard** — farmer count, volume, premium vs. payout totals, and a network-wide farmer table.
 
-- Farmers connect their Phantom wallet and register with their name, crop type, and land size
-- Premium payments (0.1 SOL) are transferred on-chain to a program vault and recorded immutably
-- Claims are filed and approved by an admin wallet, releasing SOL back to the farmer
-- Every transaction is publicly verifiable on Solana Explorer
-- Farmer profile data is stored in Supabase for fast, flexible display
+## Architecture
 
----
+```
+┌──────────────────────────┐        sign tx        ┌──────────────────────┐
+│  Next.js 16 (browser)    │ ────────────────────▶ │  Phantom / Solflare  │
+│  - wallet adapter        │ ◀──────────────────── │  wallet              │
+│  - Anchor JS client      │      signed tx        └──────────────────────┘
+└──────┬─────────────┬─────┘
+       │ RPC         │ REST (anon key)
+       ▼             ▼
+┌──────────────┐  ┌─────────────────────────────────┐
+│ Solana       │  │ Supabase (Postgres)             │
+│ block_harvest│  │ farmers · transactions ·        │
+│ program      │  │ dashboard_stats (view)          │
+│  ├ Farmer PDA│  └─────────────────────────────────┘
+│  └ Vault PDA │   off-chain: profile + ledger index
+└──────────────┘   on-chain: money + policy state
+```
+
+**Design rule:** anything that involves money or policy status lives on-chain and is the source of truth. Supabase is a convenience index for fast reads and human-readable profile data.
+
+## Smart contract
+
+Anchor program (`block-harvest/programs/block-harvest/src/lib.rs`) · Devnet ID `C54J4haBjNNGYfV8ZENqvDRzvhX5ReeJPjyCVnySbdXj`
+
+| Instruction | Caller | Effect |
+|---|---|---|
+| `initialize_vault` | anyone (once) | Creates the vault PDA that holds premiums |
+| `register_farmer` | farmer | Creates the farmer's policy PDA |
+| `pay_premium` | farmer | Transfers 0.1 SOL farmer → vault, sets `premium_paid` |
+| `file_claim` | admin | Requires paid premium; sets `claim_filed` |
+| `approve_claim` | admin | Requires filed claim; moves SOL vault → farmer, sets `claim_approved` |
+
+**Accounts**
+
+```
+Farmer PDA  seeds ["farmer", wallet]   farmer · premium_paid · premium_amount ·
+                                       payment_timestamp · claim_filed · claim_approved · bump
+Vault PDA   seeds ["vault"]            bump   (lamports = pooled premiums)
+```
+
+**Safety checks enforced on-chain:** no double premium, no claim without a premium, no double filing or approval, admin-only claim actions, payout wallet must match the policy owner, and payouts can't drain the vault below rent-exempt minimum.
 
 ## Tech stack
 
-| Layer | Technology |
+| Layer | Tech |
 |---|---|
-| Smart contract | Rust, Anchor 0.29.0 |
-| Blockchain | Solana Devnet |
-| Frontend | Next.js 15, TypeScript, Tailwind CSS |
-| Wallet | Phantom via Solana Wallet Adapter |
-| Database | Supabase (PostgreSQL) |
-| JS client | @coral-xyz/anchor 0.29.0, @solana/web3.js |
-
----
+| Smart contract | Rust, Anchor 0.29 |
+| Chain | Solana Devnet |
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
+| Wallets | Solana Wallet Adapter (Phantom, Solflare) |
+| Data | Supabase Postgres with RLS |
+| Hosting | Vercel |
 
 ## Project structure
 
 ```
-blockHarvest/
-└── block-harvest/
-    ├── programs/
-    │   └── block-harvest/
-    │       └── src/
-    │           └── lib.rs          # Anchor smart contract
-    ├── app/                        # Next.js frontend
-    │   ├── app/
-    │   │   ├── layout.tsx          # Root layout
-    │   │   ├── providers.tsx       # Wallet provider wrapper
-    │   │   ├── page.tsx            # Landing + wallet connect
-    │   │   ├── register/
-    │   │   │   └── page.tsx        # Farmer registration form
-    │   │   └── dashboard/
-    │   │       └── page.tsx        # Farmer dashboard + pay premium
-    │   └── lib/
-    │       ├── anchor.ts           # Anchor client + PDA helpers
-    │       └── supabase.ts         # Supabase client + types
-    ├── Anchor.toml                 # Anchor config
-    └── Cargo.toml                  # Rust workspace
+block-harvest/
+├── programs/block-harvest/src/lib.rs   # Anchor program
+├── Anchor.toml
+└── app/                                # Next.js frontend
+    ├── app/
+    │   ├── page.tsx                    # landing
+    │   ├── register/page.tsx           # on-chain registration + profile
+    │   ├── dashboard/page.tsx          # policy status, pay premium, network stats
+    │   ├── transactions/page.tsx       # public ledger
+    │   └── providers.tsx               # wallet + RPC providers
+    ├── components/                     # header, footer, policy modal
+    ├── lib/anchor.ts                   # IDL, program client, PDA helpers
+    ├── lib/supabase.ts                 # DB client, ledger + stats queries
+    └── supabase/schema.sql             # tables, view, RLS policies
 ```
 
----
+## Run it locally
 
-## Smart contract
-
-**Program ID:** `C54J4haBjNNGYfV8ZENqvDRzvhX5ReeJPjyCVnySbdXj`  
-**Network:** Solana Devnet  
-**Framework:** Anchor 0.29.0
-
-### Instructions
-
-| Instruction | Who can call | What it does |
-|---|---|---|
-| `register_farmer` | Any wallet | Creates a PDA account tied to the farmer's wallet |
-| `pay_premium` | Registered farmer | Transfers 0.1 SOL to vault, marks `premium_paid = true` |
-| `file_claim` | Admin only | Marks `claim_filed = true` on farmer's account |
-| `approve_claim` | Admin only | Releases SOL from vault back to farmer's wallet |
-
-### On-chain data (FarmerAccount PDA)
-
-```
-farmer            Pubkey    wallet address
-premium_paid      bool      whether premium has been paid
-premium_amount    u64       amount paid in lamports
-payment_timestamp i64       unix timestamp of payment
-claim_filed       bool      whether a claim has been filed
-claim_approved    bool      whether the claim was approved
-bump              u8        PDA bump seed
-```
-
-### PDA derivation
-
-```
-Farmer PDA  →  seeds: ["farmer", wallet_address]
-Vault PDA   →  seeds: ["vault"]
-```
-
----
-
-## Local setup
-
-### Prerequisites
-
-- Rust 1.85+
-- Solana CLI 3.x
-- Node.js 20+
-- Anchor CLI 0.29.0
-- Phantom browser extension
-
-### 1. Clone and install
+**Prerequisites:** Rust (toolchain pinned in `rust-toolchain.toml`), Solana CLI, Anchor CLI, Node 20+, a Supabase project, Phantom with Devnet SOL ([faucet](https://faucet.solana.com)).
 
 ```bash
-git clone https://github.com/yourname/block-harvest.git
-cd block-harvest
-```
+git clone https://github.com/TheNobady/blockHarvest.git
+cd blockHarvest/block-harvest
 
-### 2. Set up Rust toolchain
-
-```bash
-rustup default stable
-rustup update
-```
-
-### 3. Configure Solana for Devnet
-
-```bash
+# 1 — contract (optional: the frontend can use the already-deployed program)
 solana config set --url devnet
-solana-keygen new --outfile ~/.config/solana/id.json
-# Get free SOL at https://faucet.solana.com
+cargo build-sbf --manifest-path programs/block-harvest/Cargo.toml --sbf-out-dir target/deploy
+solana program deploy target/deploy/block_harvest.so
+
+# 2 — database: run app/supabase/schema.sql in the Supabase SQL editor
+
+# 3 — frontend
+cd app && npm install
+# create .env.local with the values below
+npm run dev                  # http://localhost:3000
 ```
 
-### 4. Build the smart contract
-
-```bash
-anchor build
-```
-
-### 5. Deploy to Devnet
-
-```bash
-anchor deploy --provider.cluster devnet
-```
-
-### 6. Set up the frontend
-
-```bash
-cd app
-npm install
-```
-
-Create `.env.local`:
+`.env.local`
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 NEXT_PUBLIC_PROGRAM_ID=C54J4haBjNNGYfV8ZENqvDRzvhX5ReeJPjyCVnySbdXj
 NEXT_PUBLIC_RPC_URL=https://api.devnet.solana.com
 ```
 
-### 7. Set up Supabase
+> If you deploy your own program, update `declare_id!` in `lib.rs`, `Anchor.toml`, and `NEXT_PUBLIC_PROGRAM_ID`, and change `ADMIN` in `lib.rs` to your wallet.
 
-Run this in the Supabase SQL editor:
+## Verify a transaction yourself
 
-```sql
-create table farmers (
-  wallet_address text primary key,
-  name           text not null,
-  crop_type      text not null,
-  land_size      numeric not null,
-  created_at     timestamp with time zone default now()
-);
-
-alter table farmers disable row level security;
-```
-
-### 8. Run the frontend
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
----
-
-## User flow
-
-```
-1. Open app → connect Phantom wallet
-2. First time? → redirected to /register
-3. Fill in name, crop type, land size → submit
-   - Creates on-chain PDA account
-   - Saves profile to Supabase
-4. Redirected to /dashboard
-   - Profile loaded from Supabase
-   - Payment status loaded from chain
-5. Click "Pay Premium — 0.1 SOL"
-   - Phantom prompts for approval
-   - 0.1 SOL transferred to vault PDA
-   - premium_paid = true stored on-chain
-   - Transaction link shown (Solana Explorer)
-6. Admin can file and approve claims
-   - SOL released back to farmer wallet
-```
-
----
-
-## Verifying payments on-chain
-
-Every premium payment produces a transaction signature. Paste it into:
+Every premium shows a signature in the app. Open:
 
 ```
 https://explorer.solana.com/tx/<SIGNATURE>?cluster=devnet
 ```
 
-You will see:
-- The program that was called (`block_harvest`)
-- The instruction (`pay_premium`)
-- SOL transferred from farmer wallet to vault
-- `premium_paid = true` written to the farmer's PDA account
+You'll see the `block_harvest` program invoked, the `pay_premium` instruction, and 0.1 SOL moving from the farmer to the vault PDA — a record no server or admin can edit.
 
-This is the tamper-proof payment record — no database, no admin, no server can alter it.
+## Roadmap
 
----
-
-## Known setup notes
-
-- Anchor 0.29.0 is required for Rust and the JS client — do not mix versions
-- The Solana platform tools ship their own Cargo; if you see edition2024 errors, delete `~/.cache/solana/` and let it re-download
-- The `pubkey!()` macro is not available in Anchor 0.29.0 — admin is compared using `.to_string()`
-- Wallet adapter components require a `mounted` guard in Next.js to avoid hydration errors
-
----
+- [ ] **Parametric triggers** — replace the manual admin with a weather oracle (e.g. Switchboard/Chainlink) so claims auto-approve on drought/rainfall thresholds.
+- [ ] **Real coverage** — payout as a multiple of premium based on land size and crop, with a funded risk pool.
+- [ ] **Policy terms** — season start/end, renewals, and expiry.
+- [ ] **Admin console** in the UI for filing and approving claims.
+- [ ] **Trust-minimized ledger** — write Supabase rows from a server/webhook that verifies the signature on-chain, and lock RLS down to read-only for clients.
+- [ ] Anchor integration tests and CI.
 
 ## Acknowledgements
 
-Built as a college showcase project to demonstrate real-world use of the Solana blockchain for agricultural insurance use cases.
+Built as a showcase project exploring how public blockchains can make agricultural insurance transparent for farmers.

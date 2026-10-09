@@ -56,3 +56,6 @@ Thumbs.db
 logs/
 *.log
 test-ledger/
+
+# ── Personal notes ─────────────────────────────────────────────────
+understand.txt
